@@ -41,6 +41,7 @@ def build_parser(prog: str = "pipiname") -> argparse.ArgumentParser:
     generate.add_argument("--validate", dest="validate_name", action="store_true", default=True, help="启用常见姓名库筛选")
     generate.add_argument("--no-validate", dest="validate_name", action="store_false", help="关闭常见姓名库筛选")
     generate.add_argument("--dislike-words", default="", help="不想出现在名字中的字，例如 凶病")
+    generate.add_argument("--include-words", default="", help="名字至少包含其中一个字，例如 安")
     generate.add_argument("--limit", type=int, default=500, help="最多返回数量")
     generate.add_argument("--offset", type=int, default=0, help="跳过数量")
     generate.add_argument("--format", choices=["tsv", "csv", "json"], default=DEFAULT_OUTPUT_FORMAT, help="输出格式")
@@ -72,6 +73,7 @@ def run_generate(args: argparse.Namespace) -> int:
         allow_general=args.allow_general,
         validate_name=args.validate_name,
         dislike_words=tuple(args.dislike_words),
+        include_words=tuple(args.include_words),
         limit=args.limit,
         offset=args.offset,
     )

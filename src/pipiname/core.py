@@ -53,6 +53,7 @@ def normalize_generate_options(options: GenerateOptions) -> GenerateOptions:
         allow_general=options.allow_general,
         validate_name=options.validate_name,
         dislike_words=normalize_dislike_words(options.dislike_words),
+        include_words=normalize_dislike_words(options.include_words),
         limit=options.limit,
         offset=options.offset,
     )

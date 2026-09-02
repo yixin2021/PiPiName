@@ -35,6 +35,19 @@ def test_generate_filters_dislike_words():
     assert all(dislike not in item.first_name for item in filtered)
 
 
+def test_generate_filters_include_words():
+    base = generate_names(GenerateOptions(last_name="林", source="shijing", limit=20))
+    assert base
+    include = base[0].first_char
+
+    filtered = generate_names(
+        GenerateOptions(last_name="林", source="shijing", include_words=(include,), limit=50)
+    )
+
+    assert filtered
+    assert all(include in item.first_name for item in filtered)
+
+
 def test_generate_normalizes_input_whitespace_and_dislike_words():
     results = generate_names(
         GenerateOptions(
@@ -109,6 +122,14 @@ def test_api_endpoints():
     assert generated.status_code == 200
     assert generated.json()["count"] <= 5
 
+    included = client.post(
+        "/api/names/generate",
+        json={"last_name": "林", "source": "shijing", "include_words": ["安"], "limit": 20},
+    )
+    assert included.status_code == 200
+    assert included.json()["items"]
+    assert all("安" in item["first_name"] for item in included.json()["items"])
+
     checked = client.post("/api/names/check", json={"name": "周杰伦", "with_resource": True})
     assert checked.status_code == 200
     assert checked.json()["report"]["name"] == "周杰伦"
@@ -142,6 +163,27 @@ def test_cli_generate_json_stdout(capsys):
 
     assert code == 0
     assert '"full_name"' in capsys.readouterr().out
+
+
+def test_cli_generate_include_words(capsys):
+    code = main([
+        "generate",
+        "--last-name",
+        "林",
+        "--source",
+        "shijing",
+        "--include-words",
+        "安",
+        "--limit",
+        "3",
+        "--format",
+        "json",
+        "--output",
+        "-",
+    ])
+
+    assert code == 0
+    assert all("安" in item["first_name"] for item in __import__("json").loads(capsys.readouterr().out))
 
 
 def test_cli_default_output_follows_format(tmp_path, monkeypatch, capsys):

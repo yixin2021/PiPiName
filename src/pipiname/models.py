@@ -39,6 +39,7 @@ class GenerateOptions:
     allow_general: bool = False
     validate_name: bool = True
     dislike_words: tuple[str, ...] = ()
+    include_words: tuple[str, ...] = ()
     limit: int = 500
     offset: int = 0
 

@@ -20,6 +20,7 @@ class GenerateRequest(BaseModel):
     allow_general: bool = False
     validate_name: bool = True
     dislike_words: list[str] = Field(default_factory=list)
+    include_words: list[str] = Field(default_factory=list)
     limit: int = 500
     offset: int = 0
 
@@ -57,6 +58,7 @@ def create_app(index: NameIndex | None = None) -> FastAPI:
                 allow_general=request.allow_general,
                 validate_name=request.validate_name,
                 dislike_words=tuple(request.dislike_words),
+                include_words=tuple(request.include_words),
                 limit=request.limit,
                 offset=request.offset,
             )
@@ -1098,6 +1100,11 @@ HTML_PAGE = """
               <input type="text" name="dislike_words" placeholder="如：病凶（无需逗号分隔）">
             </div>
 
+            <div class="form-group">
+              <label>包含汉字 (名字至少包含其中一个字)</label>
+              <input type="text" name="include_words" placeholder="如：安（可输入多个字）">
+            </div>
+
             <div class="checkbox-group">
               <input name="allow_general" type="checkbox" id="allow_general">
               <label for="allow_general">允许中吉笔画</label>
@@ -1468,6 +1475,7 @@ HTML_PAGE = """
         allow_general: data.get('allow_general') === 'on',
         validate_name: data.get('validate_name') === 'on',
         dislike_words: Array.from(data.get('dislike_words') || ''),
+        include_words: Array.from(data.get('include_words') || ''),
         limit: Number(data.get('limit')),
         offset: 0
       };

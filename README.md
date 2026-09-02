@@ -47,10 +47,11 @@ pipiname web --open
   "gender": "",
   "min_stroke": 3,
   "max_stroke": 30,
-  "allow_general": false,
-  "validate_name": true,
-  "dislike_words": [],
-  "limit": 100,
+    "allow_general": false,
+    "validate_name": true,
+    "dislike_words": [],
+    "include_words": ["安"],
+    "limit": 100,
   "offset": 0
 }
 ```
@@ -68,6 +69,14 @@ pipiname web --open
 - `source_title`
 - `author`
 - `sentence`
+
+`include_words` 用于指定名字必须包含的汉字；传入多个字时，名字至少包含其中一个字。
+
+命令行也支持同样的筛选：
+
+```bash
+pipiname generate --last-name 林 --include-words 安 --format json --output -
+```
 
 ### `POST /api/names/check`
 
