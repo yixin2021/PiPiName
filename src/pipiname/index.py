@@ -90,7 +90,9 @@ class NameIndex:
                 rows = self._query_default_names(conn, options, pair_values)
                 for row in rows:
                     first_name = row["name_simp"]
-                    if self._skip_name(first_name, dislike) or not self._matches_include(first_name, include):
+                    if self._skip_name(first_name, dislike) or not self._matches_include(
+                        first_name, include, options.include_position
+                    ):
                         continue
                     if first_name in seen_names:
                         continue
@@ -120,11 +122,13 @@ class NameIndex:
             # 发布版索引默认只保留常见姓名命中的字符位置。关闭姓名库筛选时仍返回
             # 预聚合候选，避免回退到全量字符 join 造成索引体积和查询成本失控。
             for stroke1, stroke2 in pair_values:
-                include_sql = ""
-                include_params: list[object] = []
-                if include:
-                    include_sql = "and (" + " or ".join(["nc.first_name like ?"] * len(include)) + ")"
-                    include_params.extend(f"%{word}%" for word in include)
+                include_sql, include_params = self._include_sql(
+                    include,
+                    options.include_position,
+                    name_column="nc.first_name",
+                    first_column="nc.first_char_simp",
+                    second_column="nc.second_char_simp",
+                )
                 rows = conn.execute(
                     f"""
                     select
@@ -153,7 +157,9 @@ class NameIndex:
                 )
                 for row in rows:
                     first_name = row["first_name"]
-                    if self._skip_name(first_name, dislike) or not self._matches_include(first_name, include):
+                    if self._skip_name(first_name, dislike) or not self._matches_include(
+                        first_name, include, options.include_position
+                    ):
                         continue
                     if options.validate_name and row["gender"] is None:
                         continue
@@ -202,10 +208,14 @@ class NameIndex:
             dislike_sql = "and " + " and ".join(["nc.first_name not like ?"] * len(dislike))
             params.extend([f"%{word}%" for word in dislike])
         include = set(options.include_words)
-        include_sql = ""
-        if include:
-            include_sql = "and (" + " or ".join(["nc.first_name like ?"] * len(include)) + ")"
-            params.extend(f"%{word}%" for word in include)
+        include_sql, include_params = self._include_sql(
+            include,
+            options.include_position,
+            name_column="nc.first_name",
+            first_column="nc.first_char_simp",
+            second_column="nc.second_char_simp",
+        )
+        params.extend(include_params)
         rows = conn.execute(
             f"""
             select
@@ -261,7 +271,9 @@ class NameIndex:
         results: list[NameCandidate] = []
         for row in rows:
             first_name = row["first_name"]
-            if self._skip_name(first_name, dislike) or not self._matches_include(first_name, include):
+            if self._skip_name(first_name, dislike) or not self._matches_include(
+                first_name, include, options.include_position
+            ):
                 continue
             sentence = highlight(row["sentence"], row["first_char_trad"], row["second_char_trad"])
             results.append(
@@ -329,10 +341,14 @@ class NameIndex:
             gender_sql = "and (gender = ? or gender in ('双', '未知'))"
             params.append(options.gender)
         include = set(options.include_words)
-        include_sql = ""
-        if include:
-            include_sql = "and (" + " or ".join(["name_simp like ?"] * len(include)) + ")"
-            params.extend(f"%{word}%" for word in include)
+        include_sql, include_params = self._include_sql(
+            include,
+            options.include_position,
+            name_column="name_simp",
+            first_column="substr(name_simp, 1, 1)",
+            second_column="substr(name_simp, 2, 1)",
+        )
+        params.extend(include_params)
         return conn.execute(
             f"""
             select name_simp, gender, stroke1, stroke2
@@ -348,8 +364,33 @@ class NameIndex:
     def _skip_name(self, first_name: str, dislike_words: set[str]) -> bool:
         return any(ch in dislike_words for ch in first_name)
 
-    def _matches_include(self, first_name: str, include_words: set[str]) -> bool:
-        return not include_words or any(ch in include_words for ch in first_name)
+    def _include_sql(
+        self,
+        include_words: set[str],
+        position: str,
+        *,
+        name_column: str,
+        first_column: str,
+        second_column: str,
+    ) -> tuple[str, list[object]]:
+        words = sorted(include_words)
+        if not words:
+            return "", []
+        if position == "any":
+            clause = " or ".join([f"{name_column} like ?"] * len(words))
+            return f"and ({clause})", [f"%{word}%" for word in words]
+        column = first_column if position == "first" else second_column
+        placeholders = ", ".join(["?"] * len(words))
+        return f"and {column} in ({placeholders})", words
+
+    def _matches_include(self, first_name: str, include_words: set[str], position: str) -> bool:
+        if not include_words:
+            return True
+        if position == "first":
+            return first_name[0] in include_words
+        if position == "second":
+            return first_name[1] in include_words
+        return any(ch in include_words for ch in first_name)
 
     def _gender_matches(self, requested: str, gender: str) -> bool:
         if not requested:

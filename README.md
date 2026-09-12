@@ -51,6 +51,7 @@ pipiname web --open
     "validate_name": true,
     "dislike_words": [],
     "include_words": ["安"],
+    "include_position": "first",
     "limit": 100,
   "offset": 0
 }
@@ -71,11 +72,12 @@ pipiname web --open
 - `sentence`
 
 `include_words` 用于指定名字必须包含的汉字；传入多个字时，名字至少包含其中一个字。
+`include_position` 用于限定汉字位置：`any` 表示任意位置，`first` 表示名字的第一个字，`second` 表示名字的第二个字。
 
 命令行也支持同样的筛选：
 
 ```bash
-pipiname generate --last-name 林 --include-words 安 --format json --output -
+pipiname generate --last-name 林 --include-words 安 --include-position first --format json --output -
 ```
 
 ### `POST /api/names/check`

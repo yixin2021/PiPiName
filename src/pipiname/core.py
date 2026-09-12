@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 from .index import NameIndex
-from .models import CheckResult, GenerateOptions, NameCandidate, SOURCE_LABELS, VALID_GENDERS
+from .models import (
+    CheckResult,
+    GenerateOptions,
+    NameCandidate,
+    SOURCE_LABELS,
+    VALID_GENDERS,
+    VALID_INCLUDE_POSITIONS,
+)
 from .stroke import StrokeLookupError, get_stroke_number
 from .wuge import check_wuge, get_stroke_pairs
 
@@ -31,6 +38,8 @@ def validate_generate_options(options: GenerateOptions) -> None:
         raise ValidationError("gender 只能是空字符串、男或女")
     if options.gender and not options.validate_name:
         raise ValidationError("gender 非空时必须启用 validate_name")
+    if options.include_position not in VALID_INCLUDE_POSITIONS:
+        raise ValidationError("include_position 只能是 any、first 或 second")
     if options.min_stroke < 1 or options.max_stroke < options.min_stroke:
         raise ValidationError("笔画范围不合法")
     if options.limit < 1 or options.limit > 5000:
@@ -54,6 +63,7 @@ def normalize_generate_options(options: GenerateOptions) -> GenerateOptions:
         validate_name=options.validate_name,
         dislike_words=normalize_dislike_words(options.dislike_words),
         include_words=normalize_dislike_words(options.include_words),
+        include_position=options.include_position.strip(),
         limit=options.limit,
         offset=options.offset,
     )

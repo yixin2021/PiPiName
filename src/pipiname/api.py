@@ -21,6 +21,7 @@ class GenerateRequest(BaseModel):
     validate_name: bool = True
     dislike_words: list[str] = Field(default_factory=list)
     include_words: list[str] = Field(default_factory=list)
+    include_position: Literal["any", "first", "second"] = "any"
     limit: int = 500
     offset: int = 0
 
@@ -59,6 +60,7 @@ def create_app(index: NameIndex | None = None) -> FastAPI:
                 validate_name=request.validate_name,
                 dislike_words=tuple(request.dislike_words),
                 include_words=tuple(request.include_words),
+                include_position=request.include_position,
                 limit=request.limit,
                 offset=request.offset,
             )
@@ -1100,9 +1102,19 @@ HTML_PAGE = """
               <input type="text" name="dislike_words" placeholder="如：病凶（无需逗号分隔）">
             </div>
 
-            <div class="form-group">
-              <label>包含汉字 (名字至少包含其中一个字)</label>
-              <input type="text" name="include_words" placeholder="如：安（可输入多个字）">
+            <div class="form-row">
+              <div class="form-group">
+                <label>包含汉字</label>
+                <input type="text" name="include_words" placeholder="如：安宁">
+              </div>
+              <div class="form-group">
+                <label>汉字位置</label>
+                <select name="include_position">
+                  <option value="any">任意位置</option>
+                  <option value="first">第一个字</option>
+                  <option value="second">第二个字</option>
+                </select>
+              </div>
             </div>
 
             <div class="checkbox-group">
@@ -1476,6 +1488,7 @@ HTML_PAGE = """
         validate_name: data.get('validate_name') === 'on',
         dislike_words: Array.from(data.get('dislike_words') || ''),
         include_words: Array.from(data.get('include_words') || ''),
+        include_position: data.get('include_position'),
         limit: Number(data.get('limit')),
         offset: 0
       };

@@ -27,6 +27,7 @@ TEXT_SOURCE_TYPES = tuple(k for k in SOURCE_LABELS if k not in {"default", "all"
 
 VALID_GENDERS = {"", "男", "女"}
 NAME_GENDER_ANY = {"双", "未知"}
+VALID_INCLUDE_POSITIONS = {"any", "first", "second"}
 
 
 @dataclass(frozen=True)
@@ -40,6 +41,7 @@ class GenerateOptions:
     validate_name: bool = True
     dislike_words: tuple[str, ...] = ()
     include_words: tuple[str, ...] = ()
+    include_position: str = "any"
     limit: int = 500
     offset: int = 0
 

@@ -48,6 +48,30 @@ def test_generate_filters_include_words():
     assert all(include in item.first_name for item in filtered)
 
 
+def test_generate_filters_include_words_by_position():
+    first = generate_names(
+        GenerateOptions(
+            last_name="林",
+            source="shijing",
+            include_words=("马",),
+            include_position="first",
+            limit=20,
+        )
+    )
+    second = generate_names(
+        GenerateOptions(
+            last_name="林",
+            source="shijing",
+            include_words=("安",),
+            include_position="second",
+            limit=20,
+        )
+    )
+
+    assert first and all(item.first_char == "马" for item in first)
+    assert second and all(item.second_char == "安" for item in second)
+
+
 def test_generate_normalizes_input_whitespace_and_dislike_words():
     results = generate_names(
         GenerateOptions(
@@ -103,6 +127,10 @@ def test_api_endpoints():
     assert 'id="generate-health-card"' in home
     assert 'id="check-health-card"' in home
     assert "function displayGender" in home
+    assert 'name="include_position"' in home
+    assert '<option value="first">第一个字</option>' in home
+    assert '<option value="second">第二个字</option>' in home
+    assert "include_position: data.get('include_position')" in home
     assert "!['未知', '双'].includes(gender)" in home
     assert "#generate-sidebar.active" in home
     assert "flex: 1 1 auto" in home
@@ -129,6 +157,34 @@ def test_api_endpoints():
     assert included.status_code == 200
     assert included.json()["items"]
     assert all("安" in item["first_name"] for item in included.json()["items"])
+
+    included_first = client.post(
+        "/api/names/generate",
+        json={
+            "last_name": "林",
+            "source": "shijing",
+            "include_words": ["马"],
+            "include_position": "first",
+            "limit": 20,
+        },
+    )
+    assert included_first.status_code == 200
+    assert included_first.json()["items"]
+    assert all(item["first_char"] == "马" for item in included_first.json()["items"])
+
+    included_second = client.post(
+        "/api/names/generate",
+        json={
+            "last_name": "林",
+            "source": "shijing",
+            "include_words": ["安"],
+            "include_position": "second",
+            "limit": 20,
+        },
+    )
+    assert included_second.status_code == 200
+    assert included_second.json()["items"]
+    assert all(item["second_char"] == "安" for item in included_second.json()["items"])
 
     checked = client.post("/api/names/check", json={"name": "周杰伦", "with_resource": True})
     assert checked.status_code == 200
@@ -174,6 +230,8 @@ def test_cli_generate_include_words(capsys):
         "shijing",
         "--include-words",
         "安",
+        "--include-position",
+        "second",
         "--limit",
         "3",
         "--format",
@@ -183,7 +241,7 @@ def test_cli_generate_include_words(capsys):
     ])
 
     assert code == 0
-    assert all("安" in item["first_name"] for item in __import__("json").loads(capsys.readouterr().out))
+    assert all(item["second_char"] == "安" for item in __import__("json").loads(capsys.readouterr().out))
 
 
 def test_cli_default_output_follows_format(tmp_path, monkeypatch, capsys):
